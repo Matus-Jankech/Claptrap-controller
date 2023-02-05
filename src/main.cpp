@@ -22,11 +22,11 @@
 #define VoltageSensor_PIN A5
 #define Switch1_PIN 7
 #define Switch2_PIN 8
-#define Switch3_PIN A6
-#define Switch4_PIN A7
+#define Switch3_PIN A7
+#define Switch4_PIN A6
 
 //------- Radio data structure definition
-struct Data_package {
+typedef struct RADIO_DATA_STRUCT {
   byte switch1;
   byte switch2;
   byte switch3;
@@ -39,21 +39,20 @@ struct Data_package {
   byte j1PotY;
   byte j2PotX;
   byte j2PotY;
-
-};
+} radio_data_struct;
 
 //------- Radio variables
 const uint64_t pipe = 0xE8E8F0F0E1LL;
 RF24 radio(CE_PIN,CSN_PIN);
-Data_package data;
+radio_data_struct data;
 
 //------ Battery variables
-unsigned long BeepingTime;
-unsigned long NonBeepingTime;
-bool isBeeping;
-double VoltageBattery;
 #define BatteryMax 4.0
-#define BatteryMin 3.1
+#define BatteryMin 3.2
+unsigned long beeping_time, non_beeping_time, periode_time;
+int beeping_counter;
+bool buzzer_is_beeping;
+double battery_voltage;
 
 //------ Input variables
 const byte input_pins[8] = {Button1_PIN,Button2_PIN,Button3_PIN,Button4_PIN,Switch1_PIN,Switch2_PIN,Switch3_PIN,Switch4_PIN};
@@ -67,6 +66,8 @@ unsigned long current_loop_time, last_loop_time;
 
 //------ Function headers
 void read_inputs();
+void write_inputs();
+void check_battery();
 void print();
 
 //======================================
@@ -97,6 +98,8 @@ void setup() {
 	radio.setAutoAck(false);
 	radio.setDataRate(RF24_250KBPS);
 	radio.setPALevel(RF24_PA_LOW);
+	
+	delay(1000);
 }
 
 //======================================
@@ -104,12 +107,12 @@ void setup() {
 //======================================
 void loop() {
 	current_loop_time = micros();
-	if(current_loop_time - last_loop_time > 10000){
+	if(current_loop_time - last_loop_time > 2000){
 		read_inputs();
+		write_inputs();
+		check_battery();
 		print();
-
-		radio.write(&data,sizeof(Data_package));
-		last_loop_time - current_loop_time;
+		last_loop_time = current_loop_time;
 	}
 }
 
@@ -120,21 +123,52 @@ void read_inputs(){
 	for(int i = 0; i < 6; i++){
 		current_input_val[i] = digitalRead(input_pins[i]);
 	}
-
 	for(int i = 6; i < 8; i++){
-		if(analogRead(input_pins[i]) != 0){
+		if(analogRead(input_pins[i]) > 400){
 			current_input_val[i] = 1;
 		}
 		else{
 			current_input_val[i] = 0;
 		}
 	}
-
 	for(int i = 0; i < 4; i++){
 		current_joystick_val[i] = analogRead(joystick_pins[i]);	
 	}
+}
 
-	VoltageBattery = map(analogRead(VoltageSensor_PIN),0,1023,0,500)/100.0;
+void write_inputs(){
+	for(int i = 0; i < 8; i++){
+		struct_members[i] = current_input_val[i];
+	}
+	for(int i = 8; i < 12; i++){
+		struct_members[i] = 0; //current_joystick_val[i-8];
+	}
+	radio.write(&data,sizeof(radio_data_struct));
+}
+
+void check_battery(){
+	battery_voltage = map(analogRead(VoltageSensor_PIN),0,1023,0,500)/100.0;
+	if(battery_voltage <= BatteryMin){
+		if(millis() - periode_time > 30000 || beeping_counter < 3){
+			if(millis() - periode_time > 30000){
+				beeping_counter = 0;
+				periode_time = millis();
+			}
+			if(!buzzer_is_beeping && millis() - non_beeping_time > 50){
+				digitalWrite(Buzzer_PIN,HIGH);	
+				buzzer_is_beeping = true;
+				beeping_time = millis();
+			}	
+			if(buzzer_is_beeping && millis() - beeping_time > 200){
+				digitalWrite(Buzzer_PIN,LOW);	
+				buzzer_is_beeping = false;	
+				non_beeping_time = millis();
+				periode_time = millis();
+				beeping_counter++;
+			}	
+		}
+	}
+
 }
 
 void print(){
@@ -148,5 +182,5 @@ void print(){
 		Serial.print(" , ");
 	}
 
-	Serial.println(VoltageBattery);
+	Serial.println(battery_voltage);
 }
