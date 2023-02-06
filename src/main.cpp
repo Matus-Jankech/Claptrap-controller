@@ -121,17 +121,17 @@ void loop() {
 void read_inputs(){
 	for(int i = 2; i < 4; i++){
 		if(analogRead(input_pins[i]) > 400){
-			current_input_val[i] = 1;
+			current_input_val[i] = 0;
 		}
 		else{
-			current_input_val[i] = 0;
+			current_input_val[i] = 1;
 		}
 	}
 	for(int i = 0; i < 2; i++){
-		current_input_val[i] = digitalRead(input_pins[i]);
+		current_input_val[i] = !digitalRead(input_pins[i]);
 	}
 	for(int i = 4; i < 8; i++){
-		current_input_val[i] = digitalRead(input_pins[i]);
+		current_input_val[i] = !digitalRead(input_pins[i]);
 	}
 	for(int i = 0; i < 4; i++){
 		current_joystick_val[i] = analogRead(joystick_pins[i]);	
