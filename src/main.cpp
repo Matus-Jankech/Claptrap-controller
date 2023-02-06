@@ -27,18 +27,18 @@
 
 //------- Radio data structure definition
 typedef struct RADIO_DATA_STRUCT {
-  byte switch1;
-  byte switch2;
-  byte switch3;
-  byte switch4;
-  byte button1;
-  byte button2;
-  byte button3;
-  byte button4; 
-  byte j1PotX;
-  byte j1PotY;
-  byte j2PotX;
-  byte j2PotY;
+	byte switch1;
+	byte switch2;
+	byte switch3;
+	byte switch4;
+	byte button1;
+	byte button2;
+	byte button3;
+	byte button4; 
+	byte j1PotX;
+	byte j1PotY;
+	byte j2PotX;
+	byte j2PotY;
 } radio_data_struct;
 
 //------- Radio variables
@@ -55,7 +55,7 @@ bool buzzer_is_beeping;
 double battery_voltage;
 
 //------ Input variables
-const byte input_pins[8] = {Button1_PIN,Button2_PIN,Button3_PIN,Button4_PIN,Switch1_PIN,Switch2_PIN,Switch3_PIN,Switch4_PIN};
+const byte input_pins[8] = {Switch1_PIN,Switch2_PIN,Switch3_PIN,Switch4_PIN,Button1_PIN,Button2_PIN,Button3_PIN,Button4_PIN};
 const byte joystick_pins[4] = {PotX1_PIN,PotY1_PIN,PotX2_PIN,PotY2_PIN};
 byte current_input_val[8];
 int current_joystick_val[4];
@@ -98,7 +98,6 @@ void setup() {
 	radio.setAutoAck(false);
 	radio.setDataRate(RF24_250KBPS);
 	radio.setPALevel(RF24_PA_LOW);
-	
 	delay(1000);
 }
 
@@ -120,16 +119,19 @@ void loop() {
 //             Functions
 //======================================
 void read_inputs(){
-	for(int i = 0; i < 6; i++){
-		current_input_val[i] = digitalRead(input_pins[i]);
-	}
-	for(int i = 6; i < 8; i++){
+	for(int i = 2; i < 4; i++){
 		if(analogRead(input_pins[i]) > 400){
 			current_input_val[i] = 1;
 		}
 		else{
 			current_input_val[i] = 0;
 		}
+	}
+	for(int i = 0; i < 2; i++){
+		current_input_val[i] = digitalRead(input_pins[i]);
+	}
+	for(int i = 4; i < 8; i++){
+		current_input_val[i] = digitalRead(input_pins[i]);
 	}
 	for(int i = 0; i < 4; i++){
 		current_joystick_val[i] = analogRead(joystick_pins[i]);	
